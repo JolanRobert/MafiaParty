@@ -1,0 +1,7 @@
+name: MafiaParty
+version: '1.0-SNAPSHOT'
+main: MafiaParty.Main
+api-version: 1.20
+authors: [Nosta]
+commands:
+  mp:
