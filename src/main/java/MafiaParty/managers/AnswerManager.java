@@ -1,5 +1,10 @@
 package MafiaParty.managers;
 
+import MafiaParty.game.MFPlayer;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
@@ -40,9 +45,9 @@ public class AnswerManager
 
     private List<PlayerAnswer> answers = new ArrayList<>();
     private boolean isActive = false;
-    private float startTime;
+    private long startTime;
 
-    private static final DecimalFormat df = new DecimalFormat("0.000");
+    private static final DecimalFormat df = new DecimalFormat("0.00");
 
     public void addMessage(Player player, String msg) {
         if (!isActive) return;
@@ -51,11 +56,9 @@ public class AnswerManager
             PlayerAnswer pa = new PlayerAnswer(player, msg, getTime());
             answers.add(pa);
 
-            if (answers.size() == PlayerManager.getInstance().Players.size()) {
+            if (answers.size() == PlayerManager.getInstance().getMFPlayers().size()) {
                 Bukkit.broadcastMessage(ChatColor.GREEN+"Tous les joueurs ont répondu !");
-                for (Player p : Bukkit.getOnlinePlayers()) {
-                    p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP,Integer.MAX_VALUE,1);
-                }
+                GameManager.getInstance().playSound(Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
             }
             return;
         }
@@ -77,7 +80,7 @@ public class AnswerManager
     }
 
     public float getTime() {
-        float elapsedTime = System.nanoTime()-startTime;
+        long elapsedTime = System.nanoTime()-startTime;
         double elapsedTimeInSecond = (double) elapsedTime / 1_000_000_000;
         return Float.parseFloat(df.format(elapsedTimeInSecond));
     }
@@ -86,8 +89,42 @@ public class AnswerManager
         Collections.sort(answers);
 
         for (PlayerAnswer pa : answers) {
-            String msg = ChatColor.GOLD+"["+pa.player.getName()+" | "+pa.time+"s] "+ChatColor.GREEN+pa.msg;
+            String msg = ChatColor.GOLD+"["+ChatColor.YELLOW+pa.player.getName()+ChatColor.GOLD+" | "+ChatColor.YELLOW+pa.time+"s"+ChatColor.GOLD+"] "+ChatColor.GREEN+pa.msg;
             Bukkit.broadcastMessage(msg);
+        }
+    }
+
+    public void resolve(MFPlayer mfPlayer) {
+        mfPlayer.sendMessage(ChatColor.AQUA+"> Attribution des pièces <");
+        int[] rewards = new int[] {10,8,4};
+        for (PlayerAnswer pa : answers) {
+            TextComponent msg = new TextComponent(ChatColor.YELLOW + pa.player.getName());
+            for (Integer r : rewards) {
+                TextComponent click = new TextComponent(ChatColor.GOLD+" [+"+r+"g]");
+                click.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/mp gold "+pa.player.getName()+" "+r));
+                click.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.GOLD+"Click")));
+                msg.addExtra(click);
+            }
+            mfPlayer.getPlayer().spigot().sendMessage(msg);
+        }
+
+        mfPlayer.sendMessage(ChatColor.AQUA+"\n> Résolution des duels <");
+        List<MFPlayer> checkedPlayers = new ArrayList<>();
+        for (MFPlayer mfp : PlayerManager.getInstance().getMFPlayers()) {
+            if (!mfp.isDuelled() || checkedPlayers.contains(mfp)) continue;
+            MFPlayer mfDueller = mfp.getDueller();
+            TextComponent p1 = new TextComponent(mfp.getName());
+            p1.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/mp duel "+mfp.getPlayer().getName()+" "+mfDueller.getPlayer().getName()+" "+mfp.getPlayer().getName()));
+            p1.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.YELLOW+"Click")));
+            TextComponent p2 = new TextComponent(mfDueller.getName());
+            p2.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/mp duel "+mfp.getPlayer().getName()+" "+mfDueller.getPlayer().getName()+" "+mfDueller.getPlayer().getName()));
+            p2.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.YELLOW+"Click")));
+            p1.addExtra(" vs ");
+            p1.addExtra(p2);
+            mfPlayer.getPlayer().spigot().sendMessage(p1);
+
+            checkedPlayers.add(mfp);
+            checkedPlayers.add(mfDueller);
         }
     }
 

@@ -27,7 +27,7 @@ public class ScoreboardManager
     }
 
     public void updateScoreboard() {
-        List<MFPlayer> players = new ArrayList<>(PlayerManager.getInstance().Players);
+        List<MFPlayer> players = new ArrayList<>(PlayerManager.getInstance().getMFPlayers());
         Collections.sort(players);
 
         for (String entry : scoreboard.getEntries()) {

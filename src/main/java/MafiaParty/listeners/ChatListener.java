@@ -21,7 +21,7 @@ public class ChatListener implements Listener
         AnswerManager am = AnswerManager.getInstance();
         if (!am.isActive()) return;
 
-        player.sendMessage(ChatColor.GOLD+"["+player.getName()+" | "+am.getTime()+"s] "+ChatColor.GREEN+msg);
+        player.sendMessage(ChatColor.GOLD+"["+ChatColor.YELLOW+player.getName()+ChatColor.GOLD+" | "+ChatColor.YELLOW+am.getTime()+"s"+ChatColor.GOLD+"] "+ChatColor.GREEN+msg);
 
         am.addMessage(player, msg);
         event.setCancelled(true);

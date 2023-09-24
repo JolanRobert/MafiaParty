@@ -8,8 +8,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 
 public class ConnexionListener implements Listener
 {
@@ -20,7 +18,6 @@ public class ConnexionListener implements Listener
 
         player.setScoreboard(ScoreboardManager.getInstance().getScoreboard());
         PlayerManager.getInstance().addPlayer(player);
-        player.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, PotionEffect.INFINITE_DURATION, 0, true, false));
     }
 
     @EventHandler

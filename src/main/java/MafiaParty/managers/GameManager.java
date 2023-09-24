@@ -1,14 +1,12 @@
 package MafiaParty.managers;
 
 import MafiaParty.game.MFPlayer;
-import MafiaParty.game.Square;
-import MafiaParty.game.Star;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
-import java.util.Random;
+import java.util.*;
 
 public class GameManager
 {
@@ -18,83 +16,60 @@ public class GameManager
         return instance;
     }
 
-    private Random rdm = new Random();
+    private Queue<MFPlayer> turnOrder = new LinkedList<>();
+    private MFPlayer currentPlayer;
 
-    public void commandRoll(String playerName) {
-        int roll = rdm.nextInt(1,11);
+    public void randomizeTurnOrder() {
+        currentPlayer = null;
+        List<MFPlayer> players = new ArrayList<>(PlayerManager.getInstance().getMFPlayers());
+        Collections.shuffle(players);
+        StringBuilder msg = new StringBuilder(ChatColor.GOLD + "= Ordre du tour =\n");
+        for (MFPlayer mfp : players) {
+            msg.append(mfp.getName()+ChatColor.GREEN+" > ");
+            mfp.endTurn();
+            turnOrder.add(mfp);
+        }
 
+        Bukkit.broadcastMessage(msg.substring(0,msg.length()-3));
+        nextTurn();
+    }
+
+    public void forceTurn(MFPlayer mfPlayer) {
+        if (turnOrder == null) return;
+
+        while (turnOrder.peek() != mfPlayer) {
+            turnOrder.add(turnOrder.remove());
+            currentPlayer.endTurn();
+        }
+
+        currentPlayer = turnOrder.peek();
+        Bukkit.broadcastMessage(ChatColor.RED+"= Début forcé du tour de "+currentPlayer.getName()+ChatColor.RED+" =");
+        currentPlayer.beginTurn();
+    }
+
+    public void nextTurn() {
+        if (currentPlayer != null) {
+            Bukkit.broadcastMessage(ChatColor.GOLD+"= Fin du tour de "+currentPlayer.getName()+ChatColor.GOLD+" =");
+            currentPlayer.endTurn();
+            turnOrder.add(turnOrder.remove());
+        }
+
+        currentPlayer = turnOrder.peek();
+        Bukkit.broadcastMessage(ChatColor.GOLD+"= Début du tour de "+currentPlayer.getName()+ChatColor.GOLD+" =");
+        currentPlayer.beginTurn();
+    }
+
+    public void playSound(Sound sound) {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP,Integer.MAX_VALUE,2);
-        }
-
-        Bukkit.broadcastMessage(ChatColor.GREEN+playerName+" a fait un "+ChatColor.GOLD+roll);
-    }
-
-    public void commandGold(MFPlayer mfPlayer, int amount) {
-        if (amount < 0) {
-            int lostAmount = mfPlayer.loseGold(amount);
-            Bukkit.broadcastMessage(ChatColor.RED+mfPlayer.getName()+" perd "+lostAmount+"g");
-        }
-        else {
-            mfPlayer.gainGold(amount);
-            Bukkit.broadcastMessage(ChatColor.GREEN+mfPlayer.getName()+" gagne "+amount+"g");
+            player.playSound(player.getLocation(), sound,Integer.MAX_VALUE,1);
         }
     }
 
-    public void commandStar(MFPlayer mfPlayer, Star star) {
-        if (mfPlayer.hasStar(star)) {
-            mfPlayer.loseStar(star);
-            Bukkit.broadcastMessage(ChatColor.RED+mfPlayer.getName()+" perd "+getStarColor(star)+"★");
-        }
-        else {
-            mfPlayer.gainStar(star);
-            Bukkit.broadcastMessage(ChatColor.GREEN+mfPlayer.getName()+" gagne "+getStarColor(star)+"★");
+    public void playSound(Sound sound, float pitch) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.playSound(player.getLocation(), sound,Integer.MAX_VALUE,pitch);
         }
     }
 
-    private ChatColor getStarColor(Star star) {
-        if (star == Star.Blue) return ChatColor.AQUA;
-        if (star == Star.Red) return ChatColor.RED;
-        if (star == Star.Green) return ChatColor.GREEN;
-        return ChatColor.YELLOW;
-    }
-
-    public void commandSquare(MFPlayer mfPlayer, Square square) {
-        switch (square) {
-            case Blue:
-                BoardManager.getInstance().squareBlue(mfPlayer);
-                break;
-            case Red:
-                BoardManager.getInstance().squareRed(mfPlayer);
-                break;
-            case Green:
-                BoardManager.getInstance().squareGreen(mfPlayer);
-                break;
-            case Purple:
-                BoardManager.getInstance().squarePurple(mfPlayer);
-                break;
-        }
-    }
-
-    public void commandBoo(MFPlayer mfPlayer, MFPlayer mfTarget, String action, Star star) {
-        if (mfPlayer == mfTarget) {
-            mfPlayer.Player.sendMessage(ChatColor.RED+"Vous ne pouvez pas vous voler vous-même, idiot !");
-            return;
-        }
-
-        if (action.equalsIgnoreCase("Gold")) {
-            int stealAmount = mfPlayer.stealGold(mfTarget, rdm.nextInt(2,5));
-            Bukkit.broadcastMessage(ChatColor.GRAY+"■ "+mfPlayer.getName()+" vole "+stealAmount+" pièces à "+mfTarget.getName());
-        }
-        else if (action.equalsIgnoreCase("Star")) {
-            if (mfPlayer.GoldAmount < 25) {
-                mfPlayer.Player.sendMessage(ChatColor.RED+"Pas assez de Gold (20g) !");
-                return;
-            }
-            if (mfPlayer.stealStar(mfTarget, star)) {
-                mfPlayer.loseGold(25);
-                Bukkit.broadcastMessage(ChatColor.GRAY+"■ "+mfPlayer.getName()+" vole "+getStarColor(star)+"★"+ChatColor.GRAY+" à "+mfTarget.getName());
-            }
-        }
-    }
+    public MFPlayer getCurrentPlayer() {return this.currentPlayer;}
 }
